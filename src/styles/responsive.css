@@ -1,0 +1,233 @@
+/* 响应式断点变量 */
+:root {
+  --breakpoint-xs: 480px;
+  --breakpoint-sm: 576px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 992px;
+  --breakpoint-xl: 1200px;
+  --breakpoint-xxl: 1600px;
+}
+
+/* 大屏幕优化（审核人员） */
+@media (min-width: 1600px) {
+  .main-content {
+    max-width: 1600px;
+  }
+  
+  /* 后台管理页大屏适配 */
+  .admin-page .ant-table {
+    font-size: 15px;
+  }
+  
+  .stats-row {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+  }
+  
+  .stat-card .ant-statistic-title {
+    font-size: 16px;
+  }
+  
+  .stat-card .ant-statistic-content {
+    font-size: 32px;
+  }
+}
+
+/* 超大屏幕（2K+） */
+@media (min-width: 2000px) {
+  .main-content {
+    max-width: 1800px;
+  }
+  
+  .upload-page {
+    grid-template-columns: 3fr 1fr;
+  }
+  
+  .content-area {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+/* 中等屏幕（平板横屏） */
+@media (max-width: 1200px) {
+  .upload-page {
+    grid-template-columns: 1fr;
+  }
+  
+  .content-area {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 平板竖屏 */
+@media (max-width: 992px) {
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .filter-bar .ant-space {
+    flex-wrap: wrap;
+  }
+  
+  .filter-bar .ant-space-item {
+    margin-bottom: 8px;
+  }
+}
+
+/* 手机横屏 */
+@media (max-width: 768px) {
+  .main-content {
+    padding: 16px;
+  }
+  
+  .app-header .header-content {
+    padding: 0 16px;
+  }
+  
+  /* 隐藏导航文字，只显示图标 */
+  .nav-item span {
+    display: none;
+  }
+  
+  /* 进度条简化 */
+  .ant-steps-item-description {
+    display: none;
+  }
+  
+  /* 表格滚动 */
+  .ant-table-wrapper {
+    overflow-x: auto;
+  }
+  
+  /* 筛选栏堆叠 */
+  .filter-bar {
+    padding: 12px;
+  }
+  
+  .filter-bar .ant-input-search,
+  .filter-bar .ant-select,
+  .filter-bar .ant-picker {
+    width: 100% !important;
+  }
+}
+
+/* 手机竖屏 */
+@media (max-width: 576px) {
+  .main-content {
+    padding: 12px;
+  }
+  
+  .stats-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  /* 卡片简化 */
+  .ant-card {
+    border-radius: 6px;
+  }
+  
+  .ant-card-head {
+    padding: 12px 16px;
+    min-height: auto;
+  }
+  
+  .ant-card-body {
+    padding: 16px;
+  }
+  
+  /* 按钮全宽 */
+  .action-bar {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .action-bar .ant-btn {
+    width: 100%;
+  }
+  
+  /* 上传区域简化 */
+  .upload-placeholder {
+    padding: 24px 16px;
+  }
+  
+  .upload-icon {
+    font-size: 36px;
+  }
+  
+  /* 文件信息堆叠 */
+  .file-info {
+    flex-wrap: wrap;
+  }
+  
+  .file-size {
+    margin-left: 0;
+    width: 100%;
+    margin-top: 4px;
+  }
+}
+
+/* 超小屏幕 */
+@media (max-width: 480px) {
+  .logo-text {
+    display: none;
+  }
+  
+  .ant-steps {
+    font-size: 12px;
+  }
+  
+  .ant-steps-item-title {
+    font-size: 12px !important;
+  }
+}
+
+/* 打印样式优化 */
+@media print {
+  .app-header,
+  .action-bar,
+  .filter-bar {
+    display: none;
+  }
+  
+  .main-content {
+    max-width: 100%;
+    padding: 0;
+  }
+  
+  .content-area {
+    display: block;
+  }
+  
+  .ant-card {
+    box-shadow: none;
+    border: 1px solid #ddd;
+    page-break-inside: avoid;
+  }
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+  .detection-box {
+    border-width: 4px;
+  }
+  
+  .annotation-box {
+    border-width: 4px;
+  }
+  
+  .ant-tag {
+    border-width: 2px;
+  }
+}
+
+/* 减少动画模式 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
