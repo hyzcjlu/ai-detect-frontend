@@ -262,7 +262,8 @@ const handleUpload = async () => {
       uploadResults.value.push({
         fileName: item.name,
         taskId: result.taskId,
-        success: true
+        success: true,
+        preview: item.preview
       })
     } catch (error) {
       uploadResults.value.push({
@@ -281,10 +282,13 @@ const handleUpload = async () => {
 // 查看批量结果
 const viewBatchResults = () => {
   batchModalVisible.value = false
-  // 如果有成功的，跳转到第一个结果；否则跳转到管理页
-  const firstSuccess = uploadResults.value.find(r => r.success)
-  if (firstSuccess) {
-    router.push(`/result/${firstSuccess.taskId}`)
+  const successItems = uploadResults.value.filter(r => r.success)
+  if (successItems.length > 0) {
+    const [first, ...rest] = successItems
+    const query = rest.length > 0
+      ? { batch: rest.map(r => r.taskId).join(',') }
+      : {}
+    router.push({ path: `/result/${first.taskId}`, query })
   } else {
     router.push('/admin')
   }
