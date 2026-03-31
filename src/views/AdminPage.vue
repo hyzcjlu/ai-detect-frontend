@@ -236,23 +236,23 @@
         <div class="stats-grid">
           <!-- 关键指标卡片 -->
           <a-card class="stat-card">
-            <a-statistic title="检测准确率" :value="stats.accuracy" suffix="%" value-style="color: #52c41a">
+            <a-statistic title="总检测数" :value="stats.total">
+              <template #prefix><DatabaseOutlined /></template>
+            </a-statistic>
+          </a-card>
+          <a-card class="stat-card">
+            <a-statistic title="疑似篡改" :value="stats.tampered" value-style="color: #ff4d4f">
+              <template #prefix><WarningOutlined /></template>
+            </a-statistic>
+          </a-card>
+          <a-card class="stat-card">
+            <a-statistic title="正常图片" :value="stats.normal" value-style="color: #52c41a">
               <template #prefix><CheckCircleOutlined /></template>
             </a-statistic>
           </a-card>
           <a-card class="stat-card">
-            <a-statistic title="误判率" :value="stats.falsePositiveRate" suffix="%" value-style="color: #ff4d4f">
-              <template #prefix><CloseCircleOutlined /></template>
-            </a-statistic>
-          </a-card>
-          <a-card class="stat-card">
-            <a-statistic title="日均处理量" :value="stats.dailyAverage" suffix="张">
-              <template #prefix><PictureOutlined /></template>
-            </a-statistic>
-          </a-card>
-          <a-card class="stat-card">
-            <a-statistic title="总检测数" :value="stats.total">
-              <template #prefix><DatabaseOutlined /></template>
+            <a-statistic title="疑似篡改率" :value="stats.tamperedRate" suffix="%">
+              <template #prefix><LineChartOutlined /></template>
             </a-statistic>
           </a-card>
         </div>
@@ -331,7 +331,8 @@ import {
   DeleteOutlined,
   ExperimentOutlined,
   PictureOutlined,
-  DatabaseOutlined
+  DatabaseOutlined,
+  LineChartOutlined
 } from '@ant-design/icons-vue'
 import { getRecordList, deleteRecordById, getStats, getOperators, getSampledRecords, saveSampleLabelApi } from '@/api/detection'
 

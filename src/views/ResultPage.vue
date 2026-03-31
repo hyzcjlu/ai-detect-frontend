@@ -89,8 +89,12 @@
           size="small"
         >
           <template #title>
-            <WarningOutlined style="color: #ff4d4f; margin-right: 6px" />
-            疑似篡改区域（{{ result.boxes.length }} 处）
+            <span class="bbox-card-title">
+              <span class="bbox-legend bbox-legend-red">篡改</span>
+              <span class="bbox-legend bbox-legend-yellow">可疑</span>
+              <span class="bbox-legend bbox-legend-green">正常</span>
+            </span>
+            检测区域（{{ result.boxes.length }} 处）
             <span class="bbox-hint">点击行高亮对应区域</span>
           </template>
 
@@ -99,17 +103,24 @@
               v-for="(box, i) in result.boxes"
               :key="i"
               class="bbox-item"
-              :class="{ 'bbox-item-active': highlightedBoxIndex === i }"
+              :class="[
+                { 'bbox-item-active': highlightedBoxIndex === i },
+                'bbox-item-' + getBoxStatus(box)
+              ]"
               @click="onBoxClick(i)"
             >
               <!-- 色块序号 -->
-              <div class="bbox-index">{{ i + 1 }}</div>
+              <div class="bbox-index" :class="'bbox-index-' + getBoxStatus(box)">{{ i + 1 }}</div>
 
               <!-- 标签 + 坐标 -->
               <div class="bbox-content">
                 <div class="bbox-label-row">
-                  <span class="bbox-label-text">{{ box.label || '篡改区域' }}</span>
-                  <a-tag v-if="box.confidence" color="orange" size="small">
+                  <span class="bbox-label-text">{{ box.label || '检测区域' }}</span>
+                  <a-tag
+                    v-if="box.confidence"
+                    :color="getBoxStatus(box) === 'red' ? 'red' : getBoxStatus(box) === 'yellow' ? 'orange' : 'green'"
+                    size="small"
+                  >
                     置信度 {{ Math.round(box.confidence * 100) }}%
                   </a-tag>
                 </div>
@@ -298,6 +309,12 @@ const pollOnce = async (taskId) => {
     }
   } catch (e) {
     console.error('轮询出错', e)
+    // 如果是 404（任务不存在），停止轮询并提示
+    if (e?.response?.status === 404 && taskId === currentTaskId.value) {
+      stopPolling()
+      loading.value = false
+      message.error('任务不存在，请重新上传图片检测')
+    }
   }
 }
 
@@ -341,6 +358,14 @@ const onBoxResize = (index, newCoords) => {
     res.boxes[index] = { ...res.boxes[index], ...newCoords }
     taskResults.value[currentTaskId.value] = { ...res }
   }
+}
+
+// 根据 box.result 返回颜色状态：red=篡改, yellow=可疑, green=正常
+const getBoxStatus = (box) => {
+  const r = box.result || ''
+  if (r === '篡改' || r.includes('篡改')) return 'red'
+  if (r === '可疑' || r.includes('可疑') || r.includes('疑似')) return 'yellow'
+  return 'green'
 }
 
 // ---- 其他工具函数 ----
@@ -534,22 +559,44 @@ onUnmounted(() => stopPolling())
   background: #fff;
 }
 
+/* 颜色图例 */
+.bbox-card-title {
+  margin-right: 8px;
+}
+
+.bbox-legend {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  margin-right: 4px;
+}
+
+.bbox-legend-red { background: #ff4d4f; }
+.bbox-legend-yellow { background: #faad14; }
+.bbox-legend-green { background: #52c41a; }
+
+/* 不同状态的颜色 */
+.bbox-item-red { border-left: 3px solid #ff4d4f; }
+.bbox-item-yellow { border-left: 3px solid #faad14; }
+.bbox-item-green { border-left: 3px solid #52c41a; }
+
 .bbox-item:hover {
-  border-color: #ffb3b3;
-  background: #fff5f5;
+  background: #fafafa;
 }
 
 .bbox-item-active {
-  border-color: #ff4d4f !important;
-  background: #fff1f0 !important;
-  box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.15);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
 }
+
+.bbox-item-active.bbox-item-red { background: #fff1f0; border-color: #ffa39e; }
+.bbox-item-active.bbox-item-yellow { background: #fffbe6; border-color: #ffd591; }
+.bbox-item-active.bbox-item-green { background: #f6ffed; border-color: #b7eb8f; }
 
 .bbox-index {
   flex: 0 0 28px;
   height: 28px;
   border-radius: 50%;
-  background: #ff4d4f;
   color: #fff;
   font-size: 13px;
   font-weight: 600;
@@ -558,9 +605,13 @@ onUnmounted(() => stopPolling())
   justify-content: center;
 }
 
-.bbox-item-active .bbox-index {
-  background: #cf1322;
-}
+.bbox-index-red { background: #ff4d4f; }
+.bbox-index-yellow { background: #faad14; }
+.bbox-index-green { background: #52c41a; }
+
+.bbox-item-active .bbox-index-red { background: #cf1322; }
+.bbox-item-active .bbox-index-yellow { background: #d48806; }
+.bbox-item-active .bbox-index-green { background: #389e0d; }
 
 .bbox-content {
   flex: 1;

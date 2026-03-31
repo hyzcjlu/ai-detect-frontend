@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import UploadPage from '@/views/UploadPage.vue'
 import ResultPage from '@/views/ResultPage.vue'
-import ReviewPage from '@/views/ReviewPage.vue'
 import AdminPage from '@/views/AdminPage.vue'
 
 const routes = [
@@ -16,12 +15,6 @@ const routes = [
     name: 'Result',
     component: ResultPage,
     meta: { title: '检测结果' }
-  },
-  {
-    path: '/review',
-    name: 'Review',
-    component: ReviewPage,
-    meta: { title: '审核工作台' }
   },
   {
     path: '/admin',

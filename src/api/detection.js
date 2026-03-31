@@ -4,7 +4,7 @@ import { useMock } from './mock'
 // ===== 配置 =====
 // true = 使用 Mock 数据（后端未启动时）
 // false = 使用真实后端 API
-const USE_MOCK = true
+const USE_MOCK = false
 
 const api = axios.create({
   baseURL: '/api/v3',
@@ -21,6 +21,8 @@ api.interceptors.response.use(
 
 // 本地图片预览缓存：taskId → blobURL（上传时存储，用于前端显示原图）
 const localImageCache = {}
+// 本地文件名缓存：taskId → 原始文件名
+const localFileNameCache = {}
 
 // 后端状态枚举 → 前端状态映射
 const STATUS_MAP = {
@@ -53,8 +55,9 @@ export async function uploadImage(file, bbox) {
   })
 
   const taskId = res.task_id
-  // 缓存原图 Blob URL，用于前端展示
+  // 缓存原图 Blob URL 和原始文件名
   localImageCache[taskId] = URL.createObjectURL(file)
+  localFileNameCache[taskId] = file.name
 
   return { taskId, message: '上传成功' }
 }
@@ -114,7 +117,8 @@ export async function getTaskResult(taskId) {
       boxes.push({
         x1, y1, x2, y2,
         label: labelMap[item.result] || item.result || '检测区域',
-        confidence: item.confidence || 0
+        confidence: item.confidence || 0,
+        result: item.result || '正常'
       })
     }
 
@@ -145,7 +149,7 @@ export async function getTaskResult(taskId) {
 
   return {
     taskId,
-    fileName: `检测图片_${taskId.substring(0, 8)}`,
+    fileName: localFileNameCache[taskId] || `检测图片_${taskId.substring(0, 8)}`,
     thumbnail: imageUrl,
     imageUrl,
     status: 'completed',
@@ -178,14 +182,56 @@ export async function redetectWithBbox(taskId, bbox) {
   return { taskId: res.task_id, message: '重新检测已提交' }
 }
 
-// ===== 以下接口后端暂不支持，保持 Mock =====
+// ===== 后台管理 API =====
 
 export async function getRecentRecords() {
-  return useMock.getRecentRecords()
+  if (USE_MOCK) return useMock.getRecentRecords()
+  try {
+    const res = await getRecordList({ page: 1, pageSize: 5 })
+    return res.list || []
+  } catch (e) {
+    return useMock.getRecentRecords()
+  }
 }
 
-export async function getRecordList(params) {
-  return useMock.getRecordList(params)
+export async function getRecordList(params = {}) {
+  if (USE_MOCK) return useMock.getRecordList(params)
+  
+  try {
+    const page = params.page || 1
+    const pageSize = params.pageSize || 10
+    const res = await api.get(`/history?page=${page}&size=${pageSize}`)
+    
+    const list = res.items.map(task => {
+      const resultItems = task.multi_results || (task.result ? [task.result] : [])
+      let isTampered = false
+      let maxConfidence = 0
+      
+      for (const item of resultItems) {
+        if (item.result === '篡改' || item.result === '可疑') isTampered = true
+        maxConfidence = Math.max(maxConfidence, item.confidence || 0)
+      }
+      
+      const status = STATUS_MAP[task.status] || 'detecting'
+      const imageUrl = localImageCache[task.task_id] || `/api/v3/result/${task.task_id}/visualization`
+      
+      return {
+        taskId: task.task_id,
+        fileName: localFileNameCache[task.task_id] || `检测图片_${task.task_id.substring(0, 8)}`,
+        thumbnail: imageUrl,
+        status,
+        isTampered,
+        confidenceScore: maxConfidence > 0 ? Math.round((1 - maxConfidence) * 100) : '-',
+        createdAt: task.created_at ? new Date(task.created_at).getTime() : Date.now(),
+        operator: '系统'
+      }
+    })
+    
+    return { list, total: res.total }
+  } catch (e) {
+    console.error('获取记录列表失败', e)
+    return useMock.getRecordList(params)
+  }
 }
 
 export async function deleteRecordById(taskId) {
@@ -198,25 +244,99 @@ export async function deleteRecordById(taskId) {
 }
 
 export async function getStats() {
-  return useMock.getStats()
+  if (USE_MOCK) return useMock.getStats()
+  try {
+    const res = await api.get('/history?page=1&size=100')
+    const tasks = res.items
+    const completed = tasks.filter(t => t.status === 'COMPLETED')
+    let tampered = 0
+    let normal = 0
+    for (const task of completed) {
+      const items = task.multi_results || (task.result ? [task.result] : [])
+      const hasTamper = items.some(i => i.result === '篡改' || i.result === '可疑')
+      if (hasTamper) tampered++
+      else normal++
+    }
+    const total = completed.length
+    const tamperedRate = total > 0 ? Math.round((tampered / total) * 100) : 0
+    const savedLabels = JSON.parse(localStorage.getItem('sampleLabels') || '{}')
+    const labeledCount = Object.keys(savedLabels).length
+    const confirmed = Object.values(savedLabels).filter(l => l === 'correct').length
+    const misjudged = Object.values(savedLabels).filter(l => l === 'wrong').length
+    const uncertain = Object.values(savedLabels).filter(l => l === 'uncertain').length
+
+    const now = new Date()
+    const weeklyTrend = []
+    let maxDaily = 1
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now)
+      d.setDate(d.getDate() - i)
+      const dateStr = `${d.getMonth() + 1}/${d.getDate()}`
+      const count = completed.filter(t => {
+        const cd = new Date(t.created_at)
+        return cd.toDateString() === d.toDateString()
+      }).length
+      if (count > maxDaily) maxDaily = count
+      weeklyTrend.push({ date: dateStr, count })
+    }
+
+    return {
+      total, tampered, normal, tamperedRate,
+      accuracy: labeledCount > 0 ? Math.round((confirmed / labeledCount) * 100) : 0,
+      falsePositiveRate: labeledCount > 0 ? Math.round((misjudged / labeledCount) * 100) : 0,
+      dailyAverage: total > 0 ? Math.round(total / 7) : 0,
+      confirmed, misjudged, uncertain,
+      pendingReview: total - labeledCount,
+      reviewedRate: total > 0 ? Math.round((labeledCount / total) * 100) : 0,
+      weeklyTrend, maxDaily
+    }
+  } catch (e) {
+    console.error('获取统计失败', e)
+    return useMock.getStats()
+  }
 }
 
 export async function getOperators() {
   return useMock.getOperators()
 }
-
-export async function getReviewList(params) {
-  return useMock.getReviewList(params)
-}
-
-export async function submitReviewResult(taskId, data) {
-  return useMock.submitReviewResult(taskId, data)
-}
-
 export async function getSampledRecords(rate) {
-  return useMock.getSampledRecords(rate)
+  if (USE_MOCK) return useMock.getSampledRecords(rate)
+  try {
+    // 获取所有已完成的记录
+    const res = await api.get('/history?page=1&size=100')
+    const completed = res.items.filter(t => t.status === 'COMPLETED')
+    // 按比例随机抽样
+    const count = Math.max(1, Math.round(completed.length * rate / 100))
+    const shuffled = completed.sort(() => Math.random() - 0.5)
+    const sampled = shuffled.slice(0, count)
+    // 读取已有标注
+    const savedLabels = JSON.parse(localStorage.getItem('sampleLabels') || '{}')
+    return sampled.map(task => {
+      const resultItems = task.multi_results || (task.result ? [task.result] : [])
+      let isTampered = false
+      for (const item of resultItems) {
+        if (item.result === '篡改' || item.result === '可疑') isTampered = true
+      }
+      const imageUrl = localImageCache[task.task_id] || `/api/v3/result/${task.task_id}/visualization`
+      return {
+        taskId: task.task_id,
+        fileName: localFileNameCache[task.task_id] || `检测图片_${task.task_id.substring(0, 8)}`,
+        thumbnail: imageUrl,
+        isTampered,
+        manualLabel: savedLabels[task.task_id] || null
+      }
+    })
+  } catch (e) {
+    console.error('获取抽样记录失败', e)
+    return useMock.getSampledRecords(rate)
+  }
 }
 
 export async function saveSampleLabelApi(taskId, label) {
-  return useMock.saveSampleLabel(taskId, label)
+  if (USE_MOCK) return useMock.saveSampleLabel(taskId, label)
+  // 保存到 localStorage
+  const savedLabels = JSON.parse(localStorage.getItem('sampleLabels') || '{}')
+  savedLabels[taskId] = label
+  localStorage.setItem('sampleLabels', JSON.stringify(savedLabels))
+  return { success: true }
 }

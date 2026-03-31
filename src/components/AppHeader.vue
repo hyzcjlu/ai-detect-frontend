@@ -10,10 +10,6 @@
           <UploadOutlined />
           <span>上传检测</span>
         </router-link>
-        <router-link to="/review" class="nav-item" active-class="active">
-          <AuditOutlined />
-          <span>审核工作台</span>
-        </router-link>
         <router-link to="/admin" class="nav-item" active-class="active">
           <SettingOutlined />
           <span>后台管理</span>
@@ -28,7 +24,6 @@ import { useRouter } from 'vue-router'
 import { 
   SafetyCertificateOutlined, 
   UploadOutlined, 
-  AuditOutlined,
   SettingOutlined
 } from '@ant-design/icons-vue'
 

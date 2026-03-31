@@ -94,7 +94,21 @@
                 <a-avatar :src="item.thumbnail" shape="square" :size="48" />
               </template>
               <template #title>
-                <a @click="viewResult(item.taskId)">{{ item.fileName }}</a>
+                <div v-if="renamingTaskId === item.taskId" class="rename-input-row">
+                  <a-input
+                    v-model:value="renameInput"
+                    size="small"
+                    style="width: 130px"
+                    @pressEnter="confirmRename(item)"
+                    @blur="confirmRename(item)"
+                    autofocus
+                  />
+                  <CheckOutlined class="rename-confirm-icon" @click="confirmRename(item)" />
+                </div>
+                <div v-else class="filename-row">
+                  <a @click="viewResult(item.taskId)">{{ getDisplayName(item) }}</a>
+                  <EditOutlined class="rename-icon" @click.stop="startRename(item)" />
+                </div>
               </template>
               <template #description>
                 {{ formatTime(item.createdAt) }}
@@ -157,7 +171,9 @@ import {
   PlusOutlined,
   DeleteOutlined,
   CloseOutlined,
-  CloudUploadOutlined
+  CloudUploadOutlined,
+  EditOutlined,
+  CheckOutlined
 } from '@ant-design/icons-vue'
 import { uploadImage, getRecentRecords } from '@/api/detection'
 
@@ -167,6 +183,31 @@ const fileList = ref([])
 const selectedFiles = ref([])
 const uploading = ref(false)
 const recentRecords = ref([])
+
+// 重命名相关
+const renamingTaskId = ref(null)
+const renameInput = ref('')
+// 从 localStorage 读取自定义文件名
+const customFileNames = ref(JSON.parse(localStorage.getItem('customFileNames') || '{}'))
+
+const startRename = (item) => {
+  renamingTaskId.value = item.taskId
+  renameInput.value = item.fileName
+}
+
+const confirmRename = (item) => {
+  const newName = renameInput.value.trim()
+  if (newName) {
+    customFileNames.value[item.taskId] = newName
+    localStorage.setItem('customFileNames', JSON.stringify(customFileNames.value))
+    item.fileName = newName
+  }
+  renamingTaskId.value = null
+}
+
+const getDisplayName = (item) => {
+  return customFileNames.value[item.taskId] || item.fileName
+}
 
 // 批量上传状态
 const batchModalVisible = ref(false)
@@ -495,6 +536,36 @@ onMounted(async () => {
 
 .recent-card {
   height: fit-content;
+}
+
+.filename-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rename-icon {
+  color: #bbb;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.filename-row:hover .rename-icon {
+  opacity: 1;
+}
+
+.rename-input-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rename-confirm-icon {
+  color: #52c41a;
+  cursor: pointer;
+  font-size: 14px;
 }
 
 /* 批量上传弹窗 */

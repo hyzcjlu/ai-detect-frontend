@@ -315,17 +315,32 @@ const onBoxClick = (index) => {
 }
 
 // ---- 样式 ----
+// 根据检测结果返回颜色：篡改=红，可疑=黄，正常=绿
+const getBoxColor = (box) => {
+  const result = box.result || ''
+  if (result === '篡改' || result.includes('篡改')) {
+    return { border: '#ff4d4f', bg: 'rgba(255, 77, 79, 0.15)', label: '#ff4d4f' }
+  } else if (result === '可疑' || result.includes('可疑') || result.includes('疑似')) {
+    return { border: '#faad14', bg: 'rgba(250, 173, 20, 0.15)', label: '#faad14' }
+  } else {
+    return { border: '#52c41a', bg: 'rgba(82, 196, 26, 0.12)', label: '#52c41a' }
+  }
+}
+
 const getBoxStyle = (box, index) => {
   const w = box.scaledX2 - box.scaledX1
   const h = box.scaledY2 - box.scaledY1
   const draggingThis = isDragging.value && dragBoxIndex.value === index
   const resizingThis = isResizing.value && resizeBoxIndex.value === index
   const isActive = draggingThis || resizingThis
+  const color = getBoxColor(box)
   return {
     left: `${box.scaledX1}px`,
     top: `${box.scaledY1}px`,
     width: `${w}px`,
     height: `${h}px`,
+    borderColor: color.border,
+    backgroundColor: color.bg,
     cursor: isActive ? (draggingThis ? 'grabbing' : 'move') : 'grab',
     transition: isActive ? 'none' : 'box-shadow 0.2s, border-color 0.2s, background 0.2s',
     userSelect: 'none'
@@ -333,7 +348,8 @@ const getBoxStyle = (box, index) => {
 }
 
 const getLabelStyle = (box) => {
-  const style = {}
+  const color = getBoxColor(box)
+  const style = { backgroundColor: color.label }
   if (box.scaledY1 < 30) { style.top = '4px'; style.bottom = 'auto' }
   if (box.scaledX1 < 10) { style.left = '0' }
   return style
@@ -420,14 +436,11 @@ watch(() => props.src, () => {
 
 .annotation-box:hover,
 .annotation-box-active {
-  border-color: #ff7875;
-  background: rgba(255, 77, 79, 0.2);
-  box-shadow: 0 0 8px rgba(255, 77, 79, 0.4);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+  filter: brightness(1.1);
 }
 
 .annotation-box-dragging {
-  border-color: #faad14 !important;
-  background: rgba(250, 173, 20, 0.15) !important;
   box-shadow: 0 0 0 3px rgba(250, 173, 20, 0.3), 0 4px 16px rgba(0,0,0,0.2) !important;
   z-index: 10;
 }
@@ -449,7 +462,7 @@ watch(() => props.src, () => {
 
 .annotation-box-active .annotation-label,
 .annotation-box-dragging .annotation-label {
-  background: #faad14;
+  filter: brightness(1.1);
 }
 
 .annotation-confidence {

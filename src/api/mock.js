@@ -28,8 +28,8 @@ const mockDatabase = {
       imageSize: '1920x1080',
       processingTime: 2.3,
       boxes: [
-        { x1: 150, y1: 100, x2: 350, y2: 180, label: '字体异常' },
-        { x1: 400, y1: 250, x2: 550, y2: 320, label: '边缘模糊' }
+        { x1: 150, y1: 100, x2: 350, y2: 180, label: '字体异常', result: '篡改', confidence: 0.85 },
+        { x1: 400, y1: 250, x2: 550, y2: 320, label: '边缘模糊', result: '可疑', confidence: 0.62 }
       ],
       details: [
         { type: 'warning', title: '字体不一致', description: '检测到区域内字体与周围存在明显差异' },
@@ -68,7 +68,7 @@ const mockDatabase = {
       imageSize: '1280x720',
       processingTime: 1.8,
       boxes: [
-        { x1: 200, y1: 150, x2: 400, y2: 220, label: '数字篡改' }
+        { x1: 200, y1: 150, x2: 400, y2: 220, label: '数字篡改', result: '篡改', confidence: 0.78 }
       ],
       details: [
         { type: 'warning', title: '数字异常', description: '金额数字区域存在明显的图像处理痕迹' },
@@ -156,12 +156,14 @@ export const useMock = {
           imageSize: '1920x1080',
           processingTime: ((Date.now() - task.startTime) / 1000).toFixed(1),
           boxes: Math.random() > 0.5 ? [
-            { 
-              x1: Math.floor(Math.random() * 200 + 100), 
-              y1: Math.floor(Math.random() * 100 + 50), 
-              x2: Math.floor(Math.random() * 200 + 350), 
-              y2: Math.floor(Math.random() * 100 + 180), 
-              label: '疑似篡改区域' 
+            {
+              x1: Math.floor(Math.random() * 200 + 100),
+              y1: Math.floor(Math.random() * 100 + 50),
+              x2: Math.floor(Math.random() * 200 + 350),
+              y2: Math.floor(Math.random() * 100 + 180),
+              label: '疑似篡改区域',
+              result: Math.random() > 0.3 ? '篡改' : '可疑',
+              confidence: Math.random() * 0.3 + 0.6
             }
           ] : [],
           details: [
